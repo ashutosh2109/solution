@@ -1,0 +1,421 @@
+
+NODE API SERVER SETUP
+
+cd ~/some/file/path/api-server
+
+npm init
+
+ 
+
+#  Add a couple of folder
+
+ 
+
+/projectfolder
+
+--/data
+
+--/routes
+
+  --routes.js
+
+server.js
+
+package.json
+
+"main": "server.js",
+
+"scripts": {
+
+  "start": "nodemon server.js",
+
+}
+
+ 
+
+ 
+
+############## Install the package using================= npm install
+
+ 
+
+BUILDING THE SERVER.JS FILE
+
+-----------------------------------
+
+ 
+
+// load up the express framework and body-parser helper
+
+const express = require('express');
+
+const bodyParser = require('body-parser');
+
+ 
+
+// create an instance of express to serve our end points
+
+const app = express();
+
+ 
+
+// we'll load up node's built in file system helper library here
+
+// (we'll be using this later to serve our JSON files
+
+const fs = require('fs');
+
+ 
+
+// configure our express instance with some body-parser settings
+
+// including handling JSON data
+
+app.use(bodyParser.json());
+
+app.use(bodyParser.urlencoded({ extended: true }));
+
+ 
+
+// this is where we'll handle our various routes from
+
+const routes = require('./routes/routes.js')(app, fs);
+
+ 
+
+// finally, launch our server on port 3001.
+
+const server = app.listen(3001, () => {
+
+  console.log('listening on port %s...', server.address().port);
+
+});
+
+ 
+
+####  The next part is loading our routing file:
+
+ 
+
+const routes = require('./routes/routes.js')(app, fs);
+
+ 
+
+##  BUILDING THE ROUTE HANDLING SYSTEM
+
+ 
+
+const appRouter = (app, fs) => {};
+
+module.exports = appRouter;
+
+
+#####  Adding the first route
+
+ 
+
+{
+
+  "1": {
+
+    "name": "king arthur",
+
+    "password": "password1",
+
+    "profession": "king",
+
+    "id": 1
+
+  },
+
+  "2": {
+
+    "name": "rob kendal",
+
+    "password": "password3",
+
+    "profession": "code fiddler",
+
+    "id": 2
+
+  },
+
+  "3": {
+
+    "name": "teresa may",
+
+    "password": "password2",
+
+    "profession": "brexit destroyer",
+
+    "id": 6
+
+  }
+
+}
+
+const userRoutes = (app, fs) => {
+
+  // variables
+
+  const dataPath = './data/users.json';
+
+ 
+
+  // READ
+
+  app.get('/users', (req, res) => {
+
+    fs.readFile(dataPath, 'utf8', (err, data) => {
+
+      if (err) {
+
+        throw err;
+
+      }
+
+ 
+
+      res.send(JSON.parse(data));
+
+    });
+
+  });
+
+};
+
+ 
+
+module.exports = userRoutes;
+
+ 
+
+// load up our shiny new route for users
+
+const userRoutes = require('./users');
+
+ 
+
+const appRouter = (app, fs) => {
+
+  // we've added in a default route here that handles empty routes
+
+  // at the base API url
+
+  app.get('/', (req, res) => {
+
+    res.send('welcome to the development api-server');
+
+  });
+
+ 
+
+  // run our user route module here to complete the wire up
+
+  userRoutes(app, fs);
+
+};
+
+ 
+
+// this line is unchanged
+
+module.exports = appRouter;
+
+ 
+
+Completing crud operation ..
+
+ 
+
+const userRoutes = (app, fs) => {
+
+  //...unchanged ^^^
+
+ 
+
+  // refactored helper methods
+
+  const readFile = (
+
+    callback,
+
+    returnJson = false,
+
+    filePath = dataPath,
+
+    encoding = 'utf8'
+
+  ) => {
+
+    fs.readFile(filePath, encoding, (err, data) => {
+
+      if (err) {
+
+        throw err;
+
+      }
+
+ 
+
+      callback(returnJson ? JSON.parse(data) : data);
+
+    });
+
+  };
+
+ 
+
+  const writeFile = (
+
+    fileData,
+
+    callback,
+
+    filePath = dataPath,
+
+    encoding = 'utf8'
+
+  ) => {
+
+    fs.writeFile(filePath, fileData, encoding, err => {
+
+      if (err) {
+
+        throw err;
+
+      }
+
+ 
+
+      callback();
+
+    });
+
+  };
+
+ 
+
+  // READ
+
+  // Notice how we can make this 'read' operation much more simple now.
+
+  app.get('/users', (req, res) => {
+
+    readFile(data => {
+
+      res.send(data);
+
+    }, true);
+
+  });
+
+};
+
+ 
+
+module.exports = userRoutes;
+
+--------------------------------------
+
+creating new user
+
+ 
+
+-------------------------------------
+
+ 
+
+// ...
+
+ 
+
+// CREATE
+
+app.post('/users', (req, res) => {
+
+  readFile(data => {
+
+    // Note: this needs to be more robust for production use.
+
+    // e.g. use a UUID or some kind of GUID for a unique ID value.
+
+    const newUserId = Date.now().toString();
+
+ 
+
+    // add the new user
+
+    data[newUserId] = req.body;
+
+ 
+
+    writeFile(JSON.stringify(data, null, 2), () => {
+
+      res.status(200).send('new user added');
+
+    });
+
+  }, true);
+
+});
+
+ 
+
+// ...rest of file
+
+ 
+
+// UPDATE user
+
+ 
+
+app.put('/users/:id', (req, res) => {
+
+  readFile(data => {
+
+    // add the new user
+
+    const userId = req.params['id'];
+
+    data[userId] = req.body;
+
+ 
+
+    writeFile(JSON.stringify(data, null, 2), () => {
+
+      res.status(200).send(`users id:${userId} updated`);
+
+    });
+
+  }, true);
+
+});
+
+ 
+
+// DELETE user
+
+ 
+
+app.delete('/users/:id', (req, res) => {
+
+  readFile(data => {
+
+    // add the new user
+
+    const userId = req.params['id'];
+
+    delete data[userId];
+
+ 
+
+    writeFile(JSON.stringify(data, null, 2), () => {
+
+      res.status(200).send(`users id:${userId} removed`);
+
+    });
+
+  }, true);
+
+});
